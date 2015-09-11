@@ -2,6 +2,7 @@ package ir.websearch.clustering.doc;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -32,36 +33,51 @@ public class DocumentsParser {
 	public Collection<Document> parse() {
 		Collection<Document> documents = new ArrayList<Document>();
 
-		// Parse and collect all the business files.
-		String businessPath = rootDirectory + File.separator + BUSINESS_FOLDER;
+		// Parse and collect all documents. Assuming that the first hierarchy after the root directory are the clusters.
 		try {
-			Files.walk(Paths.get(businessPath)).forEach(filePath -> {
-			    if (Files.isRegularFile(filePath)) {
+			Files.walk(Paths.get(rootDirectory)).forEach(folderPath -> {
+				if (Files.isDirectory(folderPath) && !rootDirectory.equals(folderPath.getFileName().toString())) {
+					// New cluster to process. Parse all files of the cluster to Documents.
 					try {
-						List<String> fileLines = Files.lines(filePath)
-								.filter(line -> org.apache.commons.lang3.StringUtils.isNotBlank(line))
-								.collect(Collectors.toList());
-						
-						if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(fileLines)) {
-				    		Document.Builder docBuilder = new Builder();
-					    	String fileName = FilenameUtils.removeExtension(filePath.getFileName().toString());
-							docBuilder.fileNum(fileName);
-							docBuilder.origCluster(BUSINESS_FOLDER);
-					    	docBuilder.title(fileLines.get(0)); // First line is the title.
-					    	
-					    	String text = String.join(" ", fileLines);
-					    	docBuilder.text(text);
-					    	
-					    	documents.add(docBuilder.build());
-				    	}
-					} catch (Exception e) {}
-			    }
+						Files.walk(folderPath).forEach(filePath -> {
+							if (Files.isRegularFile(filePath)) {
+								try {
+									List<String> fileLines = Files.lines(filePath, StandardCharsets.ISO_8859_1)
+											.filter(line -> org.apache.commons.lang3.StringUtils.isNotBlank(line))
+											.collect(Collectors.toList());
+									
+									if (org.apache.commons.collections4.CollectionUtils.isNotEmpty(fileLines)) {
+							    		Document.Builder docBuilder = new Builder();
+								    	String fileName = FilenameUtils.removeExtension(filePath.getFileName().toString());
+										docBuilder.fileNum(fileName);
+																				
+										// The folders with the first hierarchy after the root directory are the clusters.
+										String clusterName = folderPath.getFileName().toString();
+										docBuilder.origCluster(clusterName);
+										
+								    	docBuilder.title(fileLines.get(0)); // First line is the title.
+								    	
+								    	String text = String.join(" ", fileLines);
+								    	docBuilder.text(text);
+								    	
+								    	documents.add(docBuilder.build());
+							    	}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+						    }						
+						});
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			    
 			});
 		} catch (IOException e) {
-			
+			e.printStackTrace();
 		}
 		
 		return documents;
 	}
-
+	
 }

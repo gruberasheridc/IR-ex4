@@ -1,6 +1,8 @@
 package ir.websearch.clustering;
 
 import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import ir.websearch.clustering.doc.Document;
 import ir.websearch.clustering.doc.DocumentsParser;
@@ -33,6 +35,8 @@ public class Cluster {
 			System.out.println("Faild to load documents from root directory: " + inputParams.getRootDirectory() + ".");
 			return;
 		}
+		
+		
 		
 		System.out.println(docs.size());
 		
