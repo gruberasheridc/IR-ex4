@@ -1,0 +1,4 @@
+outputFile=output.txt
+k=5
+retrievalAlgorithm=basic
+rootDirectory=bbc
