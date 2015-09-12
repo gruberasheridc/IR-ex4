@@ -55,6 +55,9 @@ public class DocumentsParser {
 										String clusterName = folderPath.getFileName().toString();
 										docBuilder.origCluster(clusterName);
 										
+										String docId = clusterName + fileName;
+										docBuilder.docId(docId);
+										
 								    	docBuilder.title(fileLines.get(0)); // First line is the title.
 								    	
 								    	String text = String.join(" ", fileLines);
