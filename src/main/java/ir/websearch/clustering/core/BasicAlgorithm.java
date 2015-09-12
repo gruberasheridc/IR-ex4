@@ -6,10 +6,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.Text;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Field;
@@ -22,12 +31,21 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
+import org.apache.mahout.clustering.kmeans.KMeansDriver;
+import org.apache.mahout.clustering.kmeans.RandomSeedGenerator;
+import org.apache.mahout.common.distance.DistanceMeasure;
+import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
+import org.apache.mahout.utils.clustering.ClusterDumper;
+
+import com.google.common.collect.Sets;
 
 import ir.websearch.clustering.doc.Document;
 
 public class BasicAlgorithm implements IClusterAlgorithm {
 	
+	private static final int MAX_ITERATIONS = 10;
 	private static final String INDEX_PATH = "index";
+	private static final int K = 5;
 	private final Collection<Document> docs;
 	
 	public BasicAlgorithm(Collection<Document> docs) {
@@ -52,12 +70,13 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			System.out.println("outputVectPath: " + outputVectPath + "." );
 			
 			String dicOutPath = tmpPath + "dictOut" + File.separator + "dictionary.txt";
-			Path pathToFile = Paths.get(dicOutPath);
-			Files.createDirectories(pathToFile.getParent());
+			Path dicOutFilePath = Paths.get(dicOutPath);
+			Files.createDirectories(dicOutFilePath.getParent());
 			System.out.println("dicOutPath: " + dicOutPath + "." );
 			
 			String norm =  "--norm " + 2;
 			
+			// Convert lucene term vectors to Mahout vectors.
 			org.apache.mahout.utils.vectors.lucene.Driver.main(new String[] {
 			        "--dir", idxDir,
 			        "--output", outputVectPath,
@@ -66,7 +85,42 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			        "--dictOut", dicOutPath
 			    });
 			
-			System.out.println("Driver complete!!!");
+			System.out.println("Driver write Mahout vectors complete!!!");
+			
+			Configuration conf = new Configuration();
+			FileSystem fs = FileSystem.getLocal(conf);
+			org.apache.hadoop.fs.Path vectorPath = new org.apache.hadoop.fs.Path(outputVectPath);
+			org.apache.hadoop.fs.Path initCentroidsPath = new org.apache.hadoop.fs.Path(tmpPath, "InitCentroids");			
+		    
+			// Select initial centroids
+			DistanceMeasure measure = new EuclideanDistanceMeasure();
+		    RandomSeedGenerator.buildRandom(conf, vectorPath, initCentroidsPath, K, measure);
+
+		    // Run k-means
+		    org.apache.hadoop.fs.Path kMeansOutput = new org.apache.hadoop.fs.Path(tmpPath, "kmeansOutput");
+		    KMeansDriver.run(conf, vectorPath, initCentroidsPath, kMeansOutput, 0.001, MAX_ITERATIONS, true, 0.0, true);
+
+		    // Print out clusters
+		    String[] termDictionary = null;
+			try {
+				List<String> terms = new ArrayList<>();
+				List<String> dicLins = Files.readAllLines(dicOutFilePath);
+				int termCount = Integer.parseInt(dicLins.get(0));
+				for (int i = 2; i < 2 + termCount; i++) {
+					String line = dicLins.get(i);
+					String[] columns = line.split("\t");
+					String term = columns[0];
+					terms.add(term);
+				}
+				
+				termDictionary = terms.toArray(new String[terms.size()]);
+			} catch (IOException e) {
+				// TODO handle exception.
+			}
+		    
+		    org.apache.hadoop.fs.Path clusteredPointsDir = new org.apache.hadoop.fs.Path(kMeansOutput, "clusteredPoints");
+			ClusterDumper clusterDumper = new ClusterDumper(finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS), clusteredPointsDir);
+		    clusterDumper.printClusters(termDictionary);
 
 		} catch (Exception e) {
 			System.out.println("Faild to search the collection.");
@@ -74,6 +128,22 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 		}
 		
 		return output;
+	}
+	
+  /**
+   * Return the path to the final iteration's clusters
+   */
+	private static org.apache.hadoop.fs.Path finalClusterPath(Configuration conf, org.apache.hadoop.fs.Path output,
+			int maxIterations) throws IOException {
+		FileSystem fs = FileSystem.get(conf);
+		for (int i = maxIterations; i >= 0; i--) {
+			org.apache.hadoop.fs.Path clusters = new org.apache.hadoop.fs.Path(output, "clusters-" + i + "-final");
+			if (fs.exists(clusters)) {
+				return clusters;
+			}
+		}
+		
+		return null;
 	}
 	
 	/**
