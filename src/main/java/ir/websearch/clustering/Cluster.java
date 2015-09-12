@@ -1,9 +1,15 @@
 package ir.websearch.clustering;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.List;
 
+import ir.websearch.clustering.core.BasicAlgorithm;
+import ir.websearch.clustering.core.IClusterAlgorithm;
+import ir.websearch.clustering.core.ImprovedAlgorithm;
 import ir.websearch.clustering.doc.Document;
 import ir.websearch.clustering.doc.DocumentsParser;
 import ir.websearch.clustering.helper.InputParams;
@@ -36,9 +42,30 @@ public class Cluster {
 			return;
 		}
 		
+		// Generate the a cluster algorithm of choice and perform clustering.
+		IClusterAlgorithm algorithm = null; 
+		switch (inputParams.getRetrievalAlgorithm()) {
+		case BASIC_ALGORITHM:
+			algorithm = new BasicAlgorithm(docs);
+			break;
+		case IMPROVED_ALGORITHM:
+			algorithm = new ImprovedAlgorithm(docs);
+			break;
+		}
 		
+		List<String> output = algorithm.cluster();
+		if (output == null) {
+			System.out.println("Faild to cluster the collection.");
+			return;
+		}
 		
-		System.out.println(docs.size());
+		// Output retrieval experiment results.
+		Path outputPath = Paths.get(inputParams.getOutputFileName());
+		try {
+			Files.write(outputPath, output);
+		} catch (IOException e) {
+			System.out.println("Faild to write output file name: " + inputParams.getOutputFileName() + ".");
+		}
 		
 	}
 
