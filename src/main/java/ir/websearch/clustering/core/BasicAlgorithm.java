@@ -54,7 +54,6 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			String dicOutPath = tmpPath + "dictOut" + File.separator + "dictionary.txt";
 			Path pathToFile = Paths.get(dicOutPath);
 			Files.createDirectories(pathToFile.getParent());
-			Files.createFile(pathToFile);
 			System.out.println("dicOutPath: " + dicOutPath + "." );
 			
 			String norm =  "--norm " + 2;
