@@ -5,20 +5,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.Text;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Field;
@@ -36,8 +28,6 @@ import org.apache.mahout.clustering.kmeans.RandomSeedGenerator;
 import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.utils.clustering.ClusterDumper;
-
-import com.google.common.collect.Sets;
 
 import ir.websearch.clustering.doc.Document;
 
@@ -119,8 +109,18 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			}
 		    
 		    org.apache.hadoop.fs.Path clusteredPointsDir = new org.apache.hadoop.fs.Path(kMeansOutput, "clusteredPoints");
-			ClusterDumper clusterDumper = new ClusterDumper(finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS), clusteredPointsDir);
-		    clusterDumper.printClusters(termDictionary);
+			/*ClusterDumper clusterDumper = new ClusterDumper(finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS), clusteredPointsDir);*/
+		    org.apache.hadoop.fs.Path finalClusterPath = finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS);
+		    String finalClusterDir = finalClusterPath.toString();
+		    ClusterDumper clusterDumper = new ClusterDumper();
+		    clusterDumper.run(new String[] {
+			        "--input", finalClusterDir,
+			        "--dictionary", dicOutPath,
+			        "--dictionaryType", "text",
+			        "--output", tmpPath + File.separator + "kmeansOutput" + File.separator + "clusterResults.txt",	
+			        "--pointsDir", tmpPath + File.separator + "kmeansOutput" + File.separator + "clusteredPoints",
+			        "--distanceMeasure", EuclideanDistanceMeasure.class.getName()			        
+			    });
 
 		} catch (Exception e) {
 			System.out.println("Faild to search the collection.");
