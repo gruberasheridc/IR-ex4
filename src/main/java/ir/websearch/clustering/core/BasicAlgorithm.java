@@ -117,9 +117,10 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			        "--input", finalClusterDir,
 			        "--dictionary", dicOutPath,
 			        "--dictionaryType", "text",
-			        "--output", tmpPath + File.separator + "kmeansOutput" + File.separator + "clusterResults.txt",	
-			        "--pointsDir", tmpPath + File.separator + "kmeansOutput" + File.separator + "clusteredPoints",
-			        "--distanceMeasure", EuclideanDistanceMeasure.class.getName()			        
+			        "--output", tmpPath + "kmeansOutput" + File.separator + "clusterResults.txt",
+			        "--outputFormat", "CSV",
+			        "--pointsDir", tmpPath + "kmeansOutput" + File.separator + "clusteredPoints",
+			        "--distanceMeasure", EuclideanDistanceMeasure.class.getName()
 			    });
 
 		} catch (Exception e) {
