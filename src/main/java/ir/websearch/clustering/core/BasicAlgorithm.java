@@ -8,10 +8,15 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,6 +37,8 @@ import org.apache.mahout.clustering.kmeans.RandomSeedGenerator;
 import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.utils.clustering.ClusterDumper;
+
+import com.sun.tools.javac.util.Pair;
 
 import ir.websearch.clustering.doc.Document;
 
@@ -126,25 +133,42 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			        "--distanceMeasure", EuclideanDistanceMeasure.class.getName()
 			    });
 		    
-		    // Generate t
-		    Path clusterResultsFilePath = Paths.get(clusterResultsFile);
-		    Map<String, List<String>> clusterNumToDocID = Files.lines(clusterResultsFilePath)
-		    		.map(line -> {
-						String[] columns = line.split(",");
-						String clusterID = columns[0];
-						List<String> docIDs = Arrays.asList(Arrays.copyOfRange(columns, 1, columns.length));
-						return new ImmutablePair<String, List<String>>(clusterID, docIDs);
-		    		})
-		    		.collect(Collectors.toMap(pair -> pair.getKey(), pair -> pair.getValue()));
-		    
-		    System.out.println("Test map");
-
+		    output = generateOutputLines(clusterResultsFile);
 		} catch (Exception e) {
 			System.out.println("Faild to search the collection.");
 			output = null;
 		}
 		
 		return output;
+	}
+
+	private List<String> generateOutputLines(String clusterResultsFile) throws IOException {
+		List<String> outputLines = new ArrayList<>();
+		int clusterID = 0;			
+		Path clusterResultsFilePath = Paths.get(clusterResultsFile);
+		List<String> clusteringResults = Files.readAllLines(clusterResultsFilePath);
+		if (CollectionUtils.isNotEmpty(clusteringResults)) {
+			Map<String, Integer> docIdToClusterID = new HashMap<>(); 
+			for (String clusterDocs : clusteringResults) {
+				clusterID++;
+				String[] columns = clusterDocs.split(",");
+				List<String> docIDs = Arrays.asList(Arrays.copyOfRange(columns, 1, columns.length));
+				final Integer currClusterID = clusterID;
+				Map<String, Integer> docIDClusterID = docIDs.stream()
+						.map(docID -> new ImmutablePair<String, Integer>(docID, currClusterID))
+						.collect(Collectors.toMap(pair -> pair.getKey(), pair -> pair.getValue()));
+				
+				docIdToClusterID.putAll(docIDClusterID);
+			}
+					    	
+			docIdToClusterID.entrySet().stream()
+				.sorted(Map.Entry.comparingByKey())
+				.forEach(entry -> {
+					String line = entry.getKey() + "," + entry.getValue();
+					outputLines.add(line);
+				});		    	
+		}
+		return outputLines;
 	}
 	
   /**
