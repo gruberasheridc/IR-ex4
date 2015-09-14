@@ -6,9 +6,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.lucene.analysis.Analyzer;
@@ -108,20 +112,32 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 				// TODO handle exception.
 			}
 		    
-		    org.apache.hadoop.fs.Path clusteredPointsDir = new org.apache.hadoop.fs.Path(kMeansOutput, "clusteredPoints");
-			/*ClusterDumper clusterDumper = new ClusterDumper(finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS), clusteredPointsDir);*/
 		    org.apache.hadoop.fs.Path finalClusterPath = finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS);
 		    String finalClusterDir = finalClusterPath.toString();
 		    ClusterDumper clusterDumper = new ClusterDumper();
-		    clusterDumper.run(new String[] {
+		    String clusterResultsFile = tmpPath + "kmeansOutput" + File.separator + "clusterResults.txt";
+			clusterDumper.run(new String[] {
 			        "--input", finalClusterDir,
 			        "--dictionary", dicOutPath,
 			        "--dictionaryType", "text",
-			        "--output", tmpPath + "kmeansOutput" + File.separator + "clusterResults.txt",
+			        "--output", clusterResultsFile,
 			        "--outputFormat", "CSV",
 			        "--pointsDir", tmpPath + "kmeansOutput" + File.separator + "clusteredPoints",
 			        "--distanceMeasure", EuclideanDistanceMeasure.class.getName()
 			    });
+		    
+		    // Generate t
+		    Path clusterResultsFilePath = Paths.get(clusterResultsFile);
+		    Map<String, List<String>> clusterNumToDocID = Files.lines(clusterResultsFilePath)
+		    		.map(line -> {
+						String[] columns = line.split(",");
+						String clusterID = columns[0];
+						List<String> docIDs = Arrays.asList(Arrays.copyOfRange(columns, 1, columns.length));
+						return new ImmutablePair<String, List<String>>(clusterID, docIDs);
+		    		})
+		    		.collect(Collectors.toMap(pair -> pair.getKey(), pair -> pair.getValue()));
+		    
+		    System.out.println("Test map");
 
 		} catch (Exception e) {
 			System.out.println("Faild to search the collection.");
