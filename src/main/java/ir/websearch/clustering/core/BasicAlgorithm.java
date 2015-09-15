@@ -63,13 +63,9 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			indexDocuments(docs, indexAnalyzer, index);
 					
 			String outputVectPath = tmpPath + "luceneVect" + File.separator + "mahoutVect.vec";
-			System.out.println("outputVectPath: " + outputVectPath + "." );
-			
 			String dicOutPath = tmpPath + "dictOut" + File.separator + "dictionary.txt";
 			Path dicOutFilePath = Paths.get(dicOutPath);
 			Files.createDirectories(dicOutFilePath.getParent());
-			System.out.println("dicOutPath: " + dicOutPath + "." );
-			
 			String norm =  "--norm " + 2;
 			
 			// Convert lucene term vectors to Mahout vectors.
@@ -81,21 +77,18 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			        "--dictOut", dicOutPath
 			    });
 			
-			System.out.println("Driver write Mahout vectors complete!!!");
-			
-			Configuration conf = new Configuration();
-			FileSystem fs = FileSystem.getLocal(conf);
-			org.apache.hadoop.fs.Path vectorPath = new org.apache.hadoop.fs.Path(outputVectPath);
-			org.apache.hadoop.fs.Path initCentroidsPath = new org.apache.hadoop.fs.Path(tmpPath, "InitCentroids");			
-		    
 			// Select initial centroids.
+			Configuration conf = new Configuration();
+			org.apache.hadoop.fs.Path vectorPath = new org.apache.hadoop.fs.Path(outputVectPath);
+			org.apache.hadoop.fs.Path initCentroidsPath = new org.apache.hadoop.fs.Path(tmpPath, "InitCentroids");					    			
 			DistanceMeasure measure = new EuclideanDistanceMeasure();
 		    RandomSeedGenerator.buildRandom(conf, vectorPath, initCentroidsPath, K, measure);
 
-		    // Run k-means
+		    // Run k-means.
 		    org.apache.hadoop.fs.Path kMeansOutput = new org.apache.hadoop.fs.Path(tmpPath, "kmeansOutput");
-		    KMeansDriver.run(conf, vectorPath, initCentroidsPath, kMeansOutput, 0.001, MAX_ITERATIONS, true, 0.0, true);
+		    KMeansDriver.run(conf, vectorPath, initCentroidsPath, kMeansOutput, 0.001, MAX_ITERATIONS, true, 0d, true);
 		    		    
+		    // Get k-means results.
 		    ClusterDumper clusterDumper = new ClusterDumper();
 		    String finalClusterDir = finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS);
 		    String kMeansOutputDir = kMeansOutput.toString();
