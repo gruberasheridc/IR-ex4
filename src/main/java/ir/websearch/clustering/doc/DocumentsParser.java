@@ -1,6 +1,5 @@
 package ir.websearch.clustering.doc;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -13,6 +12,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FilenameUtils;
 
 import ir.websearch.clustering.doc.Document.Builder;
+import ir.websearch.clustering.helper.StringUtils;
 
 public class DocumentsParser {
 	
@@ -21,8 +21,6 @@ public class DocumentsParser {
 	private static final String POLITICS_FOLDER = "politics";
 	private static final String SPORT_FOLDER = "sport";
 	private static final String TECH_FOLDER = "tech";	
-	
-	private static final String REMOVE_CHARS_REGEX = "[^-A-Za-z0-9\\s]";
 	
 	private final String rootDirectory;
 	
@@ -58,9 +56,16 @@ public class DocumentsParser {
 										String docId = clusterName + fileName;
 										docBuilder.docId(docId);
 										
-								    	docBuilder.title(fileLines.get(0)); // First line is the title.
+								    	String title = fileLines.get(0);
+										title = StringUtils.removeRedundantChars(title, StringUtils.REMOVE_CHARS_REGEX);
+										title = StringUtils.removeShortWords(title, StringUtils.SHORT_WORD_REGEX);
+										title = StringUtils.whitespacesToSingleSpace(title);
+										docBuilder.title(title); // First line is the title.
 								    	
-								    	String text = String.join(" ", fileLines);
+								    	String text = String.join(" ", fileLines);								    	
+								    	text = StringUtils.removeRedundantChars(text, StringUtils.REMOVE_CHARS_REGEX);
+								    	text = StringUtils.removeShortWords(text, StringUtils.SHORT_WORD_REGEX);
+								    	text = StringUtils.whitespacesToSingleSpace(text);
 								    	docBuilder.text(text);
 								    	
 								    	documents.add(docBuilder.build());

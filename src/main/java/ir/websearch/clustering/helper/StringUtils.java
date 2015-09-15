@@ -7,6 +7,9 @@ import java.util.regex.Pattern;
 
 public class StringUtils {
 	
+	public static final String SHORT_WORD_REGEX = "\\b\\w{1,2}\\b";
+	public static final String REMOVE_CHARS_REGEX = "[^-A-Za-z\\s]";
+	
 	/*
 	 * Find regex by grouping, It supports many or one group.
 	 * Example :
@@ -64,6 +67,16 @@ public class StringUtils {
 	 */
 	public static String whitespacesToSingleSpace(String text) {
 		return text.trim().replaceAll("\\s+", " ");
+	}
+	
+	/**
+	 * The method removes short words.
+	 * A short word is defined by the given regex.
+	 * @param text
+	 * @return
+	 */
+	public static String removeShortWords(String text, String regex) {
+		return text.replaceAll(regex,"");
 	}
 
 }
