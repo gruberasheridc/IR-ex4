@@ -100,36 +100,19 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 		    // Run k-means
 		    org.apache.hadoop.fs.Path kMeansOutput = new org.apache.hadoop.fs.Path(tmpPath, "kmeansOutput");
 		    KMeansDriver.run(conf, vectorPath, initCentroidsPath, kMeansOutput, 0.001, MAX_ITERATIONS, true, 0.0, true);
-
-		    // Print out clusters
-		    String[] termDictionary = null;
-			try {
-				List<String> terms = new ArrayList<>();
-				List<String> dicLins = Files.readAllLines(dicOutFilePath);
-				int termCount = Integer.parseInt(dicLins.get(0));
-				for (int i = 2; i < 2 + termCount; i++) {
-					String line = dicLins.get(i);
-					String[] columns = line.split("\t");
-					String term = columns[0];
-					terms.add(term);
-				}
-				
-				termDictionary = terms.toArray(new String[terms.size()]);
-			} catch (IOException e) {
-				// TODO handle exception.
-			}
-		    
-		    org.apache.hadoop.fs.Path finalClusterPath = finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS);
-		    String finalClusterDir = finalClusterPath.toString();
+		    		    
 		    ClusterDumper clusterDumper = new ClusterDumper();
-		    String clusterResultsFile = tmpPath + "kmeansOutput" + File.separator + "clusterResults.txt";
+		    String finalClusterDir = finalClusterPath(conf, kMeansOutput, MAX_ITERATIONS);
+		    String kMeansOutputDir = kMeansOutput.toString();
+		    String clusterResultsFile = kMeansOutputDir + File.separator + "clusterResults.txt";
+			String pointsDir = kMeansOutputDir + File.separator + "clusteredPoints";
 			clusterDumper.run(new String[] {
 			        "--input", finalClusterDir,
 			        "--dictionary", dicOutPath,
 			        "--dictionaryType", "text",
 			        "--output", clusterResultsFile,
 			        "--outputFormat", "CSV",
-			        "--pointsDir", tmpPath + "kmeansOutput" + File.separator + "clusteredPoints",
+			        "--pointsDir", pointsDir,
 			        "--distanceMeasure", EuclideanDistanceMeasure.class.getName()
 			    });
 		    
@@ -174,13 +157,13 @@ public class BasicAlgorithm implements IClusterAlgorithm {
   /**
    * Return the path to the final iteration's clusters
    */
-	private static org.apache.hadoop.fs.Path finalClusterPath(Configuration conf, org.apache.hadoop.fs.Path output,
+	private static String finalClusterPath(Configuration conf, org.apache.hadoop.fs.Path output,
 			int maxIterations) throws IOException {
 		FileSystem fs = FileSystem.get(conf);
 		for (int i = maxIterations; i >= 0; i--) {
 			org.apache.hadoop.fs.Path clusters = new org.apache.hadoop.fs.Path(output, "clusters-" + i + "-final");
 			if (fs.exists(clusters)) {
-				return clusters;
+				return clusters.toString();
 			}
 		}
 		
