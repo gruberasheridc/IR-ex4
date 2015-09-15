@@ -9,19 +9,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.en.EnglishAnalyzer;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StringField;
@@ -38,13 +35,11 @@ import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.utils.clustering.ClusterDumper;
 
-import com.sun.tools.javac.util.Pair;
-
 import ir.websearch.clustering.doc.Document;
 
 public class BasicAlgorithm implements IClusterAlgorithm {
 	
-	private static final int MAX_ITERATIONS = 10;
+	private static final int MAX_ITERATIONS = 100;
 	private static final String INDEX_PATH = "index";
 	private static final int K = 5;
 	private final Collection<Document> docs;
@@ -62,7 +57,7 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			String tmpPath = path.toFile().getPath() + File.separator;
 			
 			// Index documents to lucene.
-			Analyzer indexAnalyzer = new StandardAnalyzer(Version.LUCENE_46);
+			Analyzer indexAnalyzer = new EnglishAnalyzer(Version.LUCENE_46);
 			String idxDir = tmpPath + INDEX_PATH;
 			Directory index = FSDirectory.open(Paths.get(idxDir).toFile());
 			indexDocuments(docs, indexAnalyzer, index);
