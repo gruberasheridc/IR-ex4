@@ -93,7 +93,7 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			org.apache.hadoop.fs.Path vectorPath = new org.apache.hadoop.fs.Path(outputVectPath);
 			org.apache.hadoop.fs.Path initCentroidsPath = new org.apache.hadoop.fs.Path(tmpPath, "InitCentroids");			
 		    
-			// Select initial centroids
+			// Select initial centroids.
 			DistanceMeasure measure = new EuclideanDistanceMeasure();
 		    RandomSeedGenerator.buildRandom(conf, vectorPath, initCentroidsPath, K, measure);
 
