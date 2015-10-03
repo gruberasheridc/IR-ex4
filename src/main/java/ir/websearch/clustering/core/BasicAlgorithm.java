@@ -36,7 +36,6 @@ import org.apache.mahout.common.distance.DistanceMeasure;
 import org.apache.mahout.utils.clustering.ClusterDumper;
 
 import ir.websearch.clustering.doc.Document;
-import ir.websearch.clustering.helper.StanfordLemmatizer;
 
 public class BasicAlgorithm implements IClusterAlgorithm {
 	
@@ -195,7 +194,6 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 		document.add(new StringField(Document.DOC_ID_FIELD, doc.getDocId(), Field.Store.YES));
 		document.add(new StringField(Document.FILE_NUM_FIELD, doc.getFileNum(), Field.Store.YES));
 		document.add(new StringField(Document.ORIG_CLUSTER_FIELD, doc.getOrigCluster(), Field.Store.YES));
-		document.add(new TextField(Document.TITLE_FIELD, doc.getTitle(), Field.Store.YES));
 		document.add(new TextFieldWithTermVectors(Document.TEXT_FIELD, getDocumnetText(doc)));
 		writer.addDocument(document);
 	}

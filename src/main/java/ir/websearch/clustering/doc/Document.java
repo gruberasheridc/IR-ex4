@@ -5,13 +5,11 @@ public class Document {
 	public final static String DOC_ID_FIELD = "docId";
 	public final static String FILE_NUM_FIELD = "fileNum";
 	public final static String ORIG_CLUSTER_FIELD = "origCluster";
-	public final static String TITLE_FIELD = "title";
 	public final static String TEXT_FIELD = "text";
 
 	private final String docId;
 	private final String fileNum;
 	private final String origCluster;
-	private final String title;
 	private final String text;
 	
 	public String getDocId() {
@@ -26,10 +24,6 @@ public class Document {
 		return origCluster;
 	}
 
-	public String getTitle() {
-		return title;
-	}
-
 	public String getText() {
 		return text;
 	}
@@ -38,7 +32,6 @@ public class Document {
 		private String docId;
 		private String fileNum;
 		private String origCluster;
-		private String title;
 		private String text;
 		
 		public Builder docId(String docId) {
@@ -56,11 +49,6 @@ public class Document {
 			return this;
 		}
 
-		public Builder title(String title) {
-			this.title = title;
-			return this;
-		}
-
 		public Builder text(String text) {
 			this.text = text;
 			return this;
@@ -75,7 +63,6 @@ public class Document {
 		this.docId = builder.docId;
 		this.fileNum = builder.fileNum;
 		this.origCluster = builder.origCluster;
-		this.title = builder.title;
 		this.text = builder.text;
 	}
 }
