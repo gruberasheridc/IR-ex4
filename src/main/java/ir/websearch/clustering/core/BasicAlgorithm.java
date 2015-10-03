@@ -31,14 +31,16 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.apache.mahout.clustering.kmeans.KMeansDriver;
 import org.apache.mahout.clustering.kmeans.RandomSeedGenerator;
+import org.apache.mahout.common.distance.CosineDistanceMeasure;
 import org.apache.mahout.common.distance.DistanceMeasure;
-import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.utils.clustering.ClusterDumper;
 
 import ir.websearch.clustering.doc.Document;
+import ir.websearch.clustering.helper.StanfordLemmatizer;
 
 public class BasicAlgorithm implements IClusterAlgorithm {
 	
+	private static final double CLUSTER_CLASSIFICATION_THRESHOLD = 0.001;
 	private static final int MAX_ITERATIONS = 100;
 	private static final String INDEX_PATH = "index";
 	private static final int K = 5;
@@ -66,7 +68,6 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			String dicOutPath = tmpPath + "dictOut" + File.separator + "dictionary.txt";
 			Path dicOutFilePath = Paths.get(dicOutPath);
 			Files.createDirectories(dicOutFilePath.getParent());
-			String norm =  "--norm " + 2;
 			
 			// Convert lucene term vectors to Mahout vectors.
 			org.apache.mahout.utils.vectors.lucene.Driver.main(new String[] {
@@ -74,19 +75,20 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			        "--output", outputVectPath,
 			        "--field", Document.TEXT_FIELD,
 			        "--idField", Document.DOC_ID_FIELD,
-			        "--dictOut", dicOutPath
+			        "--dictOut", dicOutPath,
+			        "--norm", "2"
 			    });
 			
 			// Select initial centroids.
 			Configuration conf = new Configuration();
 			org.apache.hadoop.fs.Path vectorPath = new org.apache.hadoop.fs.Path(outputVectPath);
 			org.apache.hadoop.fs.Path initCentroidsPath = new org.apache.hadoop.fs.Path(tmpPath, "InitCentroids");					    			
-			DistanceMeasure measure = new EuclideanDistanceMeasure();
+			DistanceMeasure measure = new CosineDistanceMeasure();
 		    RandomSeedGenerator.buildRandom(conf, vectorPath, initCentroidsPath, K, measure);
 
 		    // Run k-means.
 		    org.apache.hadoop.fs.Path kMeansOutput = new org.apache.hadoop.fs.Path(tmpPath, "kmeansOutput");
-		    KMeansDriver.run(conf, vectorPath, initCentroidsPath, kMeansOutput, 0.001, MAX_ITERATIONS, true, 0d, true);
+		    KMeansDriver.run(conf, vectorPath, initCentroidsPath, kMeansOutput, getClusterClassificationThreshold(), MAX_ITERATIONS, true, 0d, true);
 		    		    
 		    // Get k-means results.
 		    ClusterDumper clusterDumper = new ClusterDumper();
@@ -101,7 +103,7 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 			        "--output", clusterResultsFile,
 			        "--outputFormat", "CSV",
 			        "--pointsDir", pointsDir,
-			        "--distanceMeasure", EuclideanDistanceMeasure.class.getName()
+			        "--distanceMeasure", CosineDistanceMeasure.class.getName()
 			    });
 		    
 		    output = generateOutputLines(clusterResultsFile);
@@ -111,6 +113,10 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 		}
 		
 		return output;
+	}
+	
+	protected double getClusterClassificationThreshold() {
+		return CLUSTER_CLASSIFICATION_THRESHOLD;
 	}
 
 	private List<String> generateOutputLines(String clusterResultsFile) throws IOException {
@@ -165,7 +171,7 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 	 * @param index the index implementation of {@link Directory}.
 	 * @throws IOException
 	 */
-	private static void indexDocuments(Collection<Document> docs, Analyzer indexAnalyzer, Directory index) throws IOException {
+	private void indexDocuments(Collection<Document> docs, Analyzer indexAnalyzer, Directory index) throws IOException {
 		IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_46, indexAnalyzer);
 		try (IndexWriter idxWriter = new IndexWriter(index, config)) {
 			for (Document doc : docs) {
@@ -184,14 +190,18 @@ public class BasicAlgorithm implements IClusterAlgorithm {
 	 * @param doc the document to index.
 	 * @throws IOException
 	 */
-	private static void addDoc(IndexWriter writer, Document doc) throws IOException {
+	private void addDoc(IndexWriter writer, Document doc) throws IOException {
 		org.apache.lucene.document.Document document = new org.apache.lucene.document.Document();
 		document.add(new StringField(Document.DOC_ID_FIELD, doc.getDocId(), Field.Store.YES));
 		document.add(new StringField(Document.FILE_NUM_FIELD, doc.getFileNum(), Field.Store.YES));
 		document.add(new StringField(Document.ORIG_CLUSTER_FIELD, doc.getOrigCluster(), Field.Store.YES));
 		document.add(new TextField(Document.TITLE_FIELD, doc.getTitle(), Field.Store.YES));
-		document.add(new TextFieldWithTermVectors(Document.TEXT_FIELD, doc.getText()));
+		document.add(new TextFieldWithTermVectors(Document.TEXT_FIELD, getDocumnetText(doc)));
 		writer.addDocument(document);
+	}
+	
+	protected String getDocumnetText(Document doc) {
+		return doc.getText();
 	}
 	
 	static class TextFieldWithTermVectors extends Field {
