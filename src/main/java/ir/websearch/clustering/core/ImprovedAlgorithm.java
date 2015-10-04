@@ -7,8 +7,7 @@ import ir.websearch.clustering.helper.StanfordLemmatizer;
 
 public class ImprovedAlgorithm extends BasicAlgorithm {
 	
-	private static final double CLUSTER_CLASSIFICATION_THRESHOLD = 0.0001;
-	StanfordLemmatizer slem = new StanfordLemmatizer();
+	private static final double CLUSTER_CLASSIFICATION_THRESHOLD = 0.0001;	
 
 	public ImprovedAlgorithm(Collection<Document> docs) {
 		super(docs);
@@ -21,6 +20,7 @@ public class ImprovedAlgorithm extends BasicAlgorithm {
 	
 	@Override
 	protected String getDocumnetText(Document doc) {
+		StanfordLemmatizer slem = new StanfordLemmatizer();
 		String lemmatizedText = slem.lemmatize(doc.getText());
 		return lemmatizedText;
 	}
